@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Building frontend assets..."
-npm install
-npm run build:js
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
 
-echo "Building Go site..."
+npm run typecheck
+npm run build:js
 go run ./cmd/daybook build
