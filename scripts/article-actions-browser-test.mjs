@@ -337,8 +337,6 @@ try {
   const actions = page.locator('.article-actions-meta');
   assert.equal(await actions.locator('[data-tooltip]').count(), 6, 'All article actions have tooltips');
   assert.equal(await actions.locator('[data-ui-text]').count(), 0, 'Article actions use icons without text labels');
-  const translation = actions.locator('.bilingual-toggle-btn');
-  await translation.hover();
   const expectedHoverColor = await page.evaluate(() => {
     const probe = document.createElement('span');
     probe.style.color = 'var(--color-hover-text)';
@@ -347,6 +345,12 @@ try {
     probe.remove();
     return color;
   });
+  const translation = actions.locator('.bilingual-toggle-btn');
+  await translation.hover();
+  await translation.page().waitForFunction(
+    ({ expected }) => getComputedStyle(document.querySelector('.bilingual-toggle-btn')).color === expected,
+    { expected: expectedHoverColor }
+  );
   assert.equal(await translation.evaluate(el => getComputedStyle(el).color), expectedHoverColor);
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
