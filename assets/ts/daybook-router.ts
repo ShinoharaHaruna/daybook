@@ -46,18 +46,78 @@ interface DaybookTransitionFinishedDetail {
   let currentRouterUrl = location.href;
   const stylesheetLoads = new Map<string, Promise<void>>();
   const pageScriptLoads = new Map<string, Promise<void>>();
+  const GITHUB_AVATAR_STORAGE_KEY = "daybook:github-avatar";
+  const GITHUB_AVATAR_FETCH_KEY = "daybook:github-avatar-fetched-at";
+  const GITHUB_AVATAR_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
   let githubAvatarURL = "";
 
+  function applyAvatarToDocument(target: Document, avatarSrc: string): void {
+    if (!avatarSrc) return;
+    target.querySelectorAll<HTMLImageElement>(".side-avatar").forEach(img => {
+      try {
+        const url = new URL(avatarSrc, location.origin);
+        url.searchParams.set("s", "96");
+        if (img.src !== url.href) {
+          img.src = url.href;
+        }
+      } catch {
+        if (img.src !== avatarSrc) {
+          img.src = avatarSrc;
+        }
+      }
+    });
+  }
+
   function syncGitHubAvatar(source: Document): void {
+    if (document.body.dataset.githubEnabled !== "true") return;
     const home = source.querySelector<HTMLElement>("[data-github-login]");
     const profileImage = home?.querySelector<HTMLImageElement>("[data-site-avatar] img");
-    if (profileImage) githubAvatarURL = profileImage.src;
-    if (!githubAvatarURL) return;
-    source.querySelectorAll<HTMLImageElement>(".side-avatar").forEach(img => {
-      const url = new URL(githubAvatarURL, location.origin);
-      url.searchParams.set("s", "96");
-      img.src = url.href;
-    });
+    if (profileImage && profileImage.src) {
+      githubAvatarURL = profileImage.src;
+      try {
+        localStorage.setItem(GITHUB_AVATAR_STORAGE_KEY, githubAvatarURL);
+        localStorage.setItem(GITHUB_AVATAR_FETCH_KEY, String(Date.now()));
+      } catch {}
+      applyAvatarToDocument(source, githubAvatarURL);
+      return;
+    }
+
+    if (!githubAvatarURL) {
+      try {
+        githubAvatarURL = localStorage.getItem(GITHUB_AVATAR_STORAGE_KEY) || "";
+      } catch {}
+    }
+    if (githubAvatarURL) {
+      applyAvatarToDocument(source, githubAvatarURL);
+    }
+
+    if (source === document) {
+      let lastFetched = 0;
+      try {
+        lastFetched = Number(localStorage.getItem(GITHUB_AVATAR_FETCH_KEY)) || 0;
+      } catch {}
+
+      if (Date.now() - lastFetched > GITHUB_AVATAR_REFRESH_INTERVAL_MS) {
+        fetch("/api/github", { signal: AbortSignal.timeout(5000) })
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data?.avatarURL && typeof data.avatarURL === "string") {
+              const newAvatar = data.avatarURL;
+              try {
+                localStorage.setItem(GITHUB_AVATAR_FETCH_KEY, String(Date.now()));
+              } catch {}
+              if (newAvatar !== githubAvatarURL) {
+                githubAvatarURL = newAvatar;
+                try {
+                  localStorage.setItem(GITHUB_AVATAR_STORAGE_KEY, githubAvatarURL);
+                } catch {}
+                applyAvatarToDocument(document, githubAvatarURL);
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    }
   }
 
   function isRouterState(state: any): state is RouterState {

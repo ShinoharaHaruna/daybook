@@ -1588,6 +1588,10 @@ func previewHandler(publicDir string) http.Handler {
 			strings.HasPrefix(r.URL.Path, "/immutable/vendor/fonts/") {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
+		if r.URL.Path == "/api/github" {
+			http.ServeFile(w, r, filepath.Join(publicDir, "github-profile.json"))
+			return
+		}
 		fileServer.ServeHTTP(w, r)
 	})
 }
