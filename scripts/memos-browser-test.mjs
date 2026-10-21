@@ -289,6 +289,17 @@ A portrait between paragraphs.
       image.loading = 'eager';
       return image.decode();
     })));
+    await page.waitForFunction(url => {
+      const content = document.querySelector(`[data-memo-url="${url}"] .memo-content`);
+      if (!content) return false;
+      const images = [...content.querySelectorAll('img')];
+      if (images.length !== 2) return false;
+      const width = (content.getBoundingClientRect().width - 8) / 2;
+      return images.every(image => {
+        const bounds = image.getBoundingClientRect();
+        return bounds.width > 0 && bounds.width <= width + 1 && bounds.height > 0 && bounds.height <= width * .75 + 1;
+      });
+    }, gamma);
     const sizes = await page.locator(`[data-memo-url="${gamma}"] .memo-content`).evaluate(content => {
       const width = (content.getBoundingClientRect().width - 8) / 2;
       return [...content.querySelectorAll('img')].map(image => {
