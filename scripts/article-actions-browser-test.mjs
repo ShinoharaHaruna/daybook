@@ -339,10 +339,15 @@ try {
   assert.equal(await actions.locator('[data-ui-text]').count(), 0, 'Article actions use icons without text labels');
   const translation = actions.locator('.bilingual-toggle-btn');
   await translation.hover();
-  assert.equal(await translation.evaluate(el => getComputedStyle(el).color), await actions.locator('[data-rss-open]').evaluate(el => {
-    el.style.color = 'var(--color-hover-text)';
-    return getComputedStyle(el).color;
-  }));
+  const expectedHoverColor = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--color-hover-text)';
+    document.body.appendChild(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  });
+  assert.equal(await translation.evaluate(el => getComputedStyle(el).color), expectedHoverColor);
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     assert(await actions.evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'Article actions fit without horizontal overflow');
