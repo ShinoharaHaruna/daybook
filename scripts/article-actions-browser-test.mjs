@@ -354,6 +354,10 @@ try {
   assert.equal(await translation.evaluate(el => getComputedStyle(el).color), expectedHoverColor);
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
+    await page.waitForFunction(() => {
+      const el = document.querySelector('.article-actions-meta');
+      return !!el && el.scrollWidth <= el.clientWidth + 1;
+    });
     assert(await actions.evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'Article actions fit without horizontal overflow');
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
