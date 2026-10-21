@@ -189,7 +189,14 @@ try {
   await custom.waitForSelector('.daybook-cursor.is-loading .daybook-cursor__liquid');
   const shape = custom.locator('.daybook-cursor__liquid path');
   const initialPath = await shape.getAttribute('d');
-  await sleep(350);
+  await custom.waitForFunction(
+    (initial) => {
+      const el = document.querySelector('.daybook-cursor__liquid path');
+      return Boolean(el && el.getAttribute('d') && el.getAttribute('d') !== initial);
+    },
+    initialPath,
+    { timeout: 5000 }
+  );
   assert.notEqual(await shape.getAttribute('d'), initialPath, 'Liquid plays even with a stationary pointer');
   await custom.mouse.move(720, 330);
   await custom.waitForFunction(() => getComputedStyle(document.querySelector('.daybook-cursor')).transform.includes('720, 330'));
